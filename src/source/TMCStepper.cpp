@@ -151,3 +151,32 @@ int16_t TMCStepper::cur_b() {
   if (value > 255) value -= 512;
   return value;
 }
+
+
+// begin daisy chain features
+void TMCStepper::set_axis(uint8_t axis)
+{
+	if (axis >= 0 && axis < MAX_DAISY_COUNT) { // axes are zero based
+		axis_index = axis;
+	}
+}
+	
+uint8_t TMCStepper::get_axis()
+{
+	return axis_index;
+}	
+	
+void TMCStepper::set_axis_count(uint8_t count) 
+{
+	if (count <= MAX_DAISY_COUNT) {
+		axis_count = count;
+	}
+}
+
+uint8_t TMCStepper::get_axis_count()
+{
+	return axis_count;
+}
+// end daisy chain features
+
+

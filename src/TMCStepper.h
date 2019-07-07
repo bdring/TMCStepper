@@ -2,26 +2,18 @@
 
 //#define TMCDEBUG
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include <Arduino.h>
 #endif
 
-#define SW_CAPABLE_PLATFORM defined(__AVR__) || defined(TARGET_LPC1768) || defined(ARDUINO_ARCH_ESP32)
+#define SW_CAPABLE_PLATFORM defined(__AVR__) || defined(TARGET_LPC1768)//  || defined(ARDUINO_ARCH_ESP32)
 
 #include <Stream.h>
 #include <SPI.h>
 #if SW_CAPABLE_PLATFORM
 	#include <SoftwareSerial.h>
 #endif
-
 #include "source/SW_SPI.h"
-
-#pragma GCC diagnostic pop
-
 #include "source/TMC2130_bitfields.h"
 #include "source/TMC2160_bitfields.h"
 #include "source/TMC5130_bitfields.h"
@@ -97,6 +89,12 @@ class TMCStepper {
 		uint32_t MSCURACT();
 		int16_t cur_a();
 		int16_t cur_b();
+		
+		// daisy chain 
+		void set_axis(uint8_t axis);	// set current axis for daisy chain
+		uint8_t get_axis();				// get the current daisy chained axis
+		void set_axis_count(uint8_t);
+		uint8_t get_axis_count();
 
 	protected:
 		TMCStepper(float RS) : Rsense(RS) {};
@@ -126,6 +124,11 @@ class TMCStepper {
 
 		const float Rsense;
 		float holdMultiplier = 0.5;
+		
+		// daisy chain defaults 
+		const uint8_t MAX_DAISY_COUNT = 6;
+		uint8_t axis_index = 1; 
+		uint8_t axis_count = 1; 
 };
 
 class TMC2130Stepper : public TMCStepper {
@@ -435,7 +438,6 @@ class TMC2160Stepper : public TMC2130Stepper {
 		uint16_t pwm_scale_auto();
 
 	protected:
-		using TMC2130Stepper::ENCM_CTRL;
 		using TMC2130Stepper::pwm_ampl;
 		using TMC2130Stepper::pwm_symmetric;
 
@@ -610,8 +612,6 @@ class TMC5130Stepper : public TMC2160Stepper {
 		bool ENC_STATUS();
 		// R: ENC_LATCH
 		uint32_t ENC_LATCH();
-
-		using TMC2130Stepper::ENCM_CTRL;
 
 		using TMC2130Stepper::PWMCONF;
 		using TMC2130Stepper::pwm_ampl;

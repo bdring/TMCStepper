@@ -93,6 +93,8 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
 }
 
 void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
+  	
+	
   addressByte |= TMC_WRITE;
   if (TMC_SW_SPI != NULL) {
     switchCSpin(LOW);
@@ -100,12 +102,23 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
     TMC_SW_SPI->transfer16((config>>16) & 0xFFFF);
     TMC_SW_SPI->transfer16(config & 0xFFFF);
   } else {
+	// Test of daisy chain.  TODO extend it to SW_SPI
     SPI.beginTransaction(SPISettings(spi_speed, MSBFIRST, SPI_MODE3));
-    switchCSpin(LOW);
-    status_response = SPI.transfer(addressByte & 0xFF);
-    SPI.transfer16((config>>16) & 0xFFFF);
-    SPI.transfer16(config & 0xFFFF);
-    SPI.endTransaction();
+    switchCSpin(LOW);	
+	for (int axis = axis_count; axis_index >= 0; axis--) { // count down since highest axis get data first
+		if (axis == axis_index)	{
+			status_response = SPI.transfer(addressByte & 0xFF);
+			SPI.transfer16((config>>16) & 0xFFFF);			
+			SPI.transfer16(config & 0xFFFF);
+		}
+		else { // fill non targeted devices 
+			status_response = SPI.transfer(0x00);
+			SPI.transfer16(0x0000);
+			SPI.transfer16(0x0000);
+		}
+	}
+	SPI.endTransaction();   
+	// daisy chain section
   }
   switchCSpin(HIGH);
 }
@@ -256,3 +269,7 @@ uint8_t TMC2130Stepper::sg_current_decrease() {
   }
   return 0;
 }
+
+
+
+
