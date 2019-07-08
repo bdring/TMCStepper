@@ -49,6 +49,7 @@ void TMC2130Stepper::switchCSpin(bool state) {
 
 uint32_t TMC2130Stepper::read(uint8_t addressByte) {
   uint32_t out = 0UL;
+  
   if (TMC_SW_SPI != NULL) {
     switchCSpin(LOW);
     TMC_SW_SPI->transfer(addressByte & 0xFF);
@@ -68,25 +69,48 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
     out |= TMC_SW_SPI->transfer(0x00);
 
   } else {
+	  // Test of daisy chain.  TODO extend it to SW_SPI
     SPI.beginTransaction(SPISettings(spi_speed, MSBFIRST, SPI_MODE3));
-    switchCSpin(LOW);
-    SPI.transfer(addressByte & 0xFF);
-    SPI.transfer16(0x0000); // Clear SPI
-    SPI.transfer16(0x0000);
-
+    switchCSpin(LOW);	
+	
+	for (int axis = axis_count-1; axis >= 0; axis--) { // count down since highest axis get data first
+		
+		if (axis == axis_index)	{
+			SPI.transfer(addressByte & 0xFF);
+			SPI.transfer16(0x0000); // Clear SPI
+			SPI.transfer16(0x0000);
+		}
+		else { // fill non targeted devices
+			SPI.transfer(addressByte & 0xFF);
+			SPI.transfer16(0x0000);
+			SPI.transfer16(0x0000);
+		}
+	}
     switchCSpin(HIGH);
+	
     switchCSpin(LOW);
-
-    status_response = SPI.transfer(addressByte & 0xFF); // Send the address byte again
-    out  = SPI.transfer(0x00);
-    out <<= 8;
-    out |= SPI.transfer(0x00);
-    out <<= 8;
-    out |= SPI.transfer(0x00);
-    out <<= 8;
-    out |= SPI.transfer(0x00);
-
+	for (int axis = axis_count-1; axis >= 0; axis--) { // count down since highest axis get data first
+		if (axis == axis_index)	{
+			status_response = SPI.transfer(addressByte & 0xFF); // Send the address byte again
+			out  = SPI.transfer(0x00);
+			out <<= 8;
+			out |= SPI.transfer(0x00);
+			out <<= 8;
+			out |= SPI.transfer(0x00);
+			out <<= 8;
+			out |= SPI.transfer(0x00);		
+			
+			break;		
+		}
+		else {			
+			SPI.transfer(0x00);
+			SPI.transfer16(0x0000);
+			SPI.transfer16(0x0000);
+		}		
+	}
+	
     SPI.endTransaction();
+	// end of daisy chain test
   }
   switchCSpin(HIGH);
   return out;
@@ -105,7 +129,7 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
     SPI.beginTransaction(SPISettings(spi_speed, MSBFIRST, SPI_MODE3));
     switchCSpin(LOW);
 	
-	for (int axis = axis_count; axis >= 0; axis--) { // count down since highest axis get data first
+	for (int axis = axis_count-1; axis >= 0; axis--) { // count down since highest axis get data first
 		if (axis == axis_index)	{
 			status_response = SPI.transfer(addressByte & 0xFF);
 			SPI.transfer16((config>>16) & 0xFFFF);			
