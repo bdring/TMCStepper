@@ -92,10 +92,9 @@ uint32_t TMC2130Stepper::read(uint8_t addressByte) {
   return out;
 }
 
-void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
-  	
+void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {  	
 	
-  addressByte |= TMC_WRITE;
+  addressByte |= TMC_WRITE;  
   if (TMC_SW_SPI != NULL) {
     switchCSpin(LOW);
     status_response = TMC_SW_SPI->transfer(addressByte & 0xFF);
@@ -104,8 +103,9 @@ void TMC2130Stepper::write(uint8_t addressByte, uint32_t config) {
   } else {
 	// Test of daisy chain.  TODO extend it to SW_SPI
     SPI.beginTransaction(SPISettings(spi_speed, MSBFIRST, SPI_MODE3));
-    switchCSpin(LOW);	
-	for (int axis = axis_count; axis_index >= 0; axis--) { // count down since highest axis get data first
+    switchCSpin(LOW);
+	
+	for (int axis = axis_count; axis >= 0; axis--) { // count down since highest axis get data first
 		if (axis == axis_index)	{
 			status_response = SPI.transfer(addressByte & 0xFF);
 			SPI.transfer16((config>>16) & 0xFFFF);			
